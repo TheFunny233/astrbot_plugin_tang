@@ -1,0 +1,5 @@
+name: astrbot_plugin_tang
+desc: 自动给唐人贴糖(🍬)的娱乐插件，内置唐人排行榜、随机贴糖与唐人杀模式
+version: v2.0.0
+author: TheFunny233
+repo: https://github.com/TheFunny233/astrbot_plugin_tang

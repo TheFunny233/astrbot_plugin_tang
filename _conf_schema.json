@@ -1,0 +1,55 @@
+{
+    "enable_tang":{
+        "description":"启用贴糖功能",
+        "type":"bool",
+        "hint":"开启后唐人发言时会贴糖",
+        "default":true
+    },
+    "default_emoji_num":{
+        "description":"默认贴表情数量",
+        "type":"int",
+        "hint":"不填参数时默认的贴表情数量",
+        "default":5
+    },
+    "time_interval":{
+        "description":"贴表情时间间隔",
+        "type":"float",
+        "hint":"发送贴表情请求时sleep()的时长",
+        "default":0.5
+    },
+    "open_admin_mode":{
+        "description":"启用系统管理员优待模式",
+        "type":"bool",
+        "hint":"管理员无法被填满,填满别人时默认20",
+        "default":false
+    },
+    "special_qq_list": {
+        "description": "特殊QQ列表",
+        "type": "list",
+        "hint": "在此列表中的QQ号将一发言就给他贴id147表情",
+        "default": []
+    },
+    "random_tang": {
+      "description": "唐人中是否随机贴糖，关闭就是糖人的每一句话都会贴糖",
+      "type": "object",
+      "hint": "开启后唐人发言时有一定概率贴糖，关闭后唐人每一句话都会贴糖",
+      "items": {
+        "isOpen": {
+          "description": "是否开启随机贴糖",
+          "type": "bool",
+          "default": false
+        },
+        "probability": {
+          "description": "随机贴糖的概率（百分比）",
+          "type": "int",
+          "default": 30
+        }
+      }
+    },
+    "tangWolfKill" : {
+      "description": "唐人杀模式",
+        "type": "bool",
+        "hint": "开启后，全群的人都是唐人，都有可能被贴糖",
+        "default": false
+    }
+}
