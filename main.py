@@ -29,7 +29,7 @@ emoji_list = [
     '128560', '128563'
 ]
 
-@register("astrbot_qqemotionreply", "QiChen", "让bot给消息回应表情", "1.1.0")
+@register("astrbot_plugin_tang", "TheFunny233", "自动给唐人贴糖(🍬)的娱乐插件，内置唐人排行榜、随机贴糖与唐人杀模式", "2.0.0")
 class MyPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
