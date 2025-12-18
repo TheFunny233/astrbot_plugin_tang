@@ -37,17 +37,23 @@ class MyPlugin(Star):
         self.config = config
         print(self.config)
 
-        random_tang_cfg = config.get('random_tang') or {}
+        self.config.setdefault("default_emoji_num", 20)
+        self.config.setdefault("time_interval", 0.5)
+        self.config.setdefault('open_admin_mode', False)
+        self.config.setdefault('special_qq_list', [])
+        self.config.setdefault('enable_tang', False)
+        self.config.setdefault('random_tang', {})
+        self.config['random_tang'].setdefault('isOpen', False)
+        self.config['random_tang'].setdefault('probability', 0)
+        self.config.setdefault('tangWolfKill', False)
 
-        self.config["default_emoji_num"] = config.get('default_emoji_num') or 20
-        self.time_interval = config.get('time_interval') or 0.5
-        self.open_admin_mode = config.get('open_admin_mode', False)
-        special_list = config.get('special_qq_list') or []
-        self.special_qq_list = [str(qq) for qq in special_list]
-        self.enable_tang = config.get('enable_tang', False)
-        self.random_tang_isOpen = random_tang_cfg.get('isOpen', False)
-        self.random_tang_probability = random_tang_cfg.get('probability', 0)
-        self.wolfKill = config.get('tangWolfKill', False)
+        self.time_interval = self.config["time_interval"]
+        self.open_admin_mode = self.config['open_admin_mode']
+        self.special_qq_list = [str(qq) for qq in self.config['special_qq_list']]
+        self.enable_tang = self.config['enable_tang']
+        self.random_tang_isOpen = self.config['random_tang']['isOpen']
+        self.random_tang_probability = self.config['random_tang']['probability']
+        self.wolfKill = self.config['tangWolfKill']
 
         self.lastMessageChain=""
 
@@ -67,8 +73,7 @@ class MyPlugin(Star):
         if not keyed_num:
             emojiNum = self.config["default_emoji_num"]
 
-        replyID=await self.get_reply_id(event)
-        receiverID=await self.get_receiver_id(event)
+        replyID, receiverID = self._get_reply_info(event)
         should_send=True
 
         #管理员模式对应逻辑
@@ -128,7 +133,7 @@ class MyPlugin(Star):
             yield event.plain_result("请输入0-100之间的数值")
             return
         self.random_tang_probability=probability
-        self._set_config_value(('random_tang', 'probability'), self.random_tang_probability)
+        self._set_config_value(('random_tang', 'probability'), probability)
         yield event.plain_result(f"已将随机贴唐人概率设置为{probability}%")
 
     @filter.permission_type(filter.PermissionType.ADMIN)
@@ -253,31 +258,16 @@ class MyPlugin(Star):
         await self.send_emoji(event, message_id, emoji_id)
         await asyncio.sleep(self.time_interval)
 
-    #获取转发消息id
-    async def get_reply_id(self,event):
+    def _get_reply_info(self, event: AstrMessageEvent) -> tuple[str | None, str | None]:
         message_chain = event.message_obj.message
-        # 获取转发消息的消息 ID
-        replyID = None
+        reply_id = None
+        receiver_id = None
         for message in message_chain:
             if message.type == "Reply":
-                replyID = message.id
+                reply_id = message.id
+                receiver_id = str(message.sender_id)
                 break
-        return replyID
-
-    #获取接收者id(返回为str类型)
-    async def get_receiver_id(self,event):
-        message_chain = event.message_obj.message
-        #获取接收者id
-        receiverID=None
-        for message in message_chain:
-            if message.type=="Reply":
-                receiverID=message.sender_id
-                break
-        return str(receiverID)
-
-    async def get_sender_id(self,event):
-        senderID = str(event.get_sender_id())
-        return senderID
+        return reply_id, receiver_id
 
     @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
     async def on_message(self, event: AstrMessageEvent):
@@ -285,7 +275,7 @@ class MyPlugin(Star):
         监听群消息，并对特殊QQ列表中的用户自动贴表情
 
         """
-        if not self.switchTang:
+        if not (self.enable_tang or self.wolfKill):
             return
 
         if event.message_obj.message == self.lastMessageChain:
@@ -335,13 +325,27 @@ class MyPlugin(Star):
         if event.get_platform_name() == "aiocqhttp":
             # qq
             assert isinstance(event, AiocqhttpMessageEvent)
+            if not message_id:
+                logger.error("无法贴表情：缺少 message_id")
+                return
+
             client = event.bot  # 得到 client
             payloads = {
                 "message_id": message_id,
                 "emoji_id": emoji_id,
                 "set": True
             }
-            ret = await client.api.call_action('set_msg_emoji_like', **payloads)  # 调用 协议端  API
+
+            try:
+                ret = await client.api.call_action('set_msg_emoji_like', **payloads)  # 调用 协议端  API
+            except Exception as exc:  # noqa: BLE001 - 需要兼容协议端 ActionFailed 异常
+                retcode = getattr(exc, "retcode", None)
+                if retcode == 1200:
+                    logger.error("贴表情失败：消息不存在或已过期 (retcode=1200)")
+                    return
+                logger.error(f"贴表情失败：{exc}")
+                return
+
             logger.info(f"表情ID:{emoji_id}")
             logger.info(f"贴表情返回结果: {ret}")
             post_result = ret['result']
